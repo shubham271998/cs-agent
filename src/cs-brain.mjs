@@ -18,7 +18,8 @@ import Anthropic from "@anthropic-ai/sdk"
 import { spawn } from "child_process"
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || ""
-const USE_CLI = true // Always use Claude CLI (included in $200/mo plan, no extra charges)
+// Use SDK if API key available (cloud), CLI if not (local)
+const USE_CLI = !ANTHROPIC_KEY
 
 const SYSTEM_PROMPT = `You are an expert Company Secretary (CS), Chartered Accountant (CA), and Financial Analyst based in India. You have deep expertise spanning 100+ years of Indian corporate law and finance.
 

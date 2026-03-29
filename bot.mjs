@@ -632,27 +632,34 @@ bot.on("message", async (msg) => {
   if (query.length < 3) return
 
   const category = csBrain.categorizeQuery(query)
+  console.log(`[QUERY] From ${msg.from.first_name}: "${query.slice(0, 50)}" (${category})`)
   bot.sendChatAction(chatId, "typing")
 
   try {
     const { text, usage } = await csBrain.askExpert(query)
+    console.log(`[RESPONSE] ${text.slice(0, 50)}... (${usage.inputTokens + usage.outputTokens} tokens)`)
     stmts.saveQuery.run(msg.from.id, category, query.slice(0, 500), text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
     safeSend(chatId, text)
   } catch (err) {
-    if (err.message.includes("API_KEY")) {
-      bot.sendMessage(chatId, "I'm not configured yet. Admin needs to set the ANTHROPIC_API_KEY.")
+    console.error(`[ERROR] Query failed: ${err.message}`)
+    if (err.message.includes("API_KEY") || err.message.includes("not found")) {
+      bot.sendMessage(chatId, "⚠️ AI engine not available. Admin needs to configure ANTHROPIC_API_KEY or install Claude CLI.")
     } else {
-      bot.sendMessage(chatId, `Something went wrong: ${err.message.slice(0, 100)}`)
+      bot.sendMessage(chatId, `Something went wrong: ${err.message.slice(0, 200)}`)
     }
   }
 })
 
 // ── Graceful Shutdown ───────────────────────────────────────
 process.on("SIGINT", () => { bot.stopPolling(); process.exit(0) })
-process.on("uncaughtException", (err) => console.error("Uncaught:", err.message))
+process.on("uncaughtException", (err) => console.error("Uncaught:", err.message, err.stack?.slice(0, 300)))
 process.on("unhandledRejection", (reason) => {
   const msg = String(reason)
-  if (!msg.includes("parse entities")) console.error("Unhandled:", msg)
+  if (!msg.includes("parse entities") && !msg.includes("409")) console.error("Unhandled:", msg)
+})
+
+bot.on("polling_error", (err) => {
+  if (!err.message?.includes("409")) console.error("Polling:", err.message)
 })
 
 console.log("🏛️ CS Agent started — Company Secretary / CA / Financial Analyst")
