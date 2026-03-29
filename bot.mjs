@@ -51,6 +51,19 @@ bot.setMyCommands([
   { command: "sebi", description: "SEBI regulation queries" },
   { command: "mystats", description: "Your usage stats" },
   { command: "help", description: "All commands" },
+  { command: "draft", description: "Draft a document (resolution, notice, minutes)" },
+  { command: "review", description: "Review a document for issues" },
+  { command: "correct", description: "Correct me — I'll learn from it" },
+  { command: "form", description: "MCA form guidance (INC, DIR, MGT, etc.)" },
+  { command: "minutes", description: "Prepare meeting minutes" },
+  { command: "notice", description: "Prepare a notice (AGM/EGM/Board)" },
+  { command: "resolution", description: "Draft a board/shareholder resolution" },
+  { command: "merchant", description: "Merchant banker / IPO queries" },
+  { command: "fdi", description: "FDI / FEMA compliance" },
+  { command: "startup", description: "Startup incorporation & compliance" },
+  { command: "merger", description: "Merger / demerger / restructuring" },
+  { command: "valuation", description: "Valuation methods & requirements" },
+  { command: "mistakes", description: "See what I've learned from corrections" },
 ])
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -246,6 +259,253 @@ for (const [cmd, domain, label] of [
     }
   })
 }
+
+// ── /draft — Draft documents ────────────────────────────────
+bot.onText(/\/draft\s+(.+)/s, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const what = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `📝 _Drafting "${what}"..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Draft the following document for an Indian company: "${what}". Include proper legal format, recitals, operative clauses, signature blocks, and all necessary statutory references. Make it ready-to-use with [BLANKS] for company-specific details.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "draft", what, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /resolution — Draft board/shareholder resolution ────────
+bot.onText(/\/resolution\s+(.+)/s, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const topic = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `📋 _Drafting resolution for "${topic}"..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Draft a board resolution for: "${topic}". Include: resolution number, date, quorum statement, "RESOLVED THAT" clause with proper legal language, authority delegation, filing requirements (if any form needs to be filed with ROC), and certified true copy attestation block. Mention the applicable section of Companies Act 2013.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "resolution", topic, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /minutes — Prepare meeting minutes ──────────────────────
+bot.onText(/\/minutes\s+(.+)/s, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const details = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `📄 _Preparing minutes..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Prepare minutes of meeting for: "${details}". Include: meeting type (Board/AGM/EGM), date/time/venue, attendees with DIN, quorum confirmation, chairman, items discussed with resolution numbers, voting details if applicable, conclusion time, and signature block. Follow Secretarial Standard SS-1 (Board) or SS-2 (General Meeting) format.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "minutes", details, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /notice — Prepare meeting notice ────────────────────────
+bot.onText(/\/notice\s+(.+)/s, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const details = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `📨 _Preparing notice..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Prepare a notice for: "${details}". Include: proper heading, notice period calculation (clear days as per Ss. 101/173), date/time/venue, agenda items with explanatory statement (if special resolution), proxy form reference, route map (if physical), e-voting details (if applicable), book closure dates, and authorized signatory. Follow SS-1/SS-2 as applicable.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "notice", details, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /form — MCA form guidance ───────────────────────────────
+bot.onText(/\/form\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const formName = match[1].trim().toUpperCase()
+  const loading = await bot.sendMessage(chatId, `📋 _Looking up form ${formName}..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Give complete guidance for MCA e-form "${formName}". Include: 1) Purpose of the form 2) Applicable section/rule 3) Who files it 4) Due date / timeline 5) Documents to attach 6) Fees (normal + additional) 7) Common rejection reasons 8) Step-by-step filing on MCA V3 portal 9) Certification requirements (CA/CS/Cost Accountant) 10) Penalty for late filing with per-day calculation.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "form_guidance", formName, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /merchant — Merchant banker / IPO ───────────────────────
+bot.onText(/\/merchant\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const query = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `🏦 _Looking into merchant banking: "${query}"..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Answer this merchant banking / IPO / investment banking question in Indian context: "${query}". Cover SEBI (Merchant Bankers) Regulations, ICDR regulations, due diligence requirements, DRHP/RHP process, underwriting, and any applicable SEBI circulars.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "merchant_banker", query, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /fdi — FDI / FEMA compliance ────────────────────────────
+bot.onText(/\/fdi\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const query = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `🌐 _Checking FEMA/FDI: "${query}"..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Answer this FDI/FEMA question: "${query}". Cover: FEMA 1999, FDI policy (consolidated), automatic vs government route, sectoral caps, pricing guidelines, FC-GPR/FC-TRS reporting, downstream investment rules, and RBI master directions.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "fdi_fema", query, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /startup — Startup queries ──────────────────────────────
+bot.onText(/\/startup\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const query = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `🚀 _Startup guidance: "${query}"..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Answer this startup-related question: "${query}". Cover: incorporation (Pvt Ltd/LLP/OPC), DPIIT recognition, Startup India benefits, angel tax exemption S.56(2)(viib), ESOP scheme, funding rounds compliance, convertible notes, SHA/SSA clauses, and typical first-year compliance calendar.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "startup", query, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /merger — Merger / restructuring ────────────────────────
+bot.onText(/\/merger\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const query = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `🔄 _Restructuring guidance..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Answer this merger/restructuring question: "${query}". Cover: Sections 230-240 of Companies Act 2013, NCLT procedure, valuation requirements (Rule 3 of Companies (Compromises, Arrangements and Amalgamations) Rules), swap ratio, appointed date, effective date, stamp duty implications, tax implications (S.47/S.2(1B) IT Act), SEBI circular for listed companies, and timeline.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "merger", query, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /valuation — Valuation queries ──────────────────────────
+bot.onText(/\/valuation\s+(.+)/, async (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const query = match[1].trim()
+  const loading = await bot.sendMessage(chatId, `💎 _Valuation guidance..._`, { parse_mode: "Markdown" })
+
+  try {
+    const { text, usage } = await csBrain.askExpert(
+      `Answer this valuation question: "${query}". Cover: when valuation is mandatory (Companies Act/SEBI/IT Act/FEMA), who can be a registered valuer (IBBI rules), valuation methods (DCF, NAV, market approach, comparable transactions), Rule 11UA of IT Rules, FEMA pricing guidelines, and practical considerations.`,
+    )
+    stmts.saveQuery.run(msg.from.id, "valuation", query, text.slice(0, 5000), usage.inputTokens + usage.outputTokens, usage.cost)
+    bot.deleteMessage(chatId, loading.message_id).catch(() => {})
+    safeSend(chatId, text)
+  } catch (err) {
+    bot.editMessageText(`Error: ${err.message}`, { chat_id: chatId, message_id: loading.message_id })
+  }
+})
+
+// ── /correct — Learn from mistakes ──────────────────────────
+bot.onText(/\/correct\s+(.+)/s, (msg, match) => {
+  registerUser(msg)
+  const chatId = msg.chat.id
+  const correction = match[1].trim()
+
+  // Parse: "topic: correction" or just "correction"
+  const parts = correction.split(":")
+  const category = parts.length > 1 ? csBrain.categorizeQuery(parts[0]) : "general"
+  const correctionText = parts.length > 1 ? parts.slice(1).join(":").trim() : correction
+
+  db.prepare(`INSERT INTO mistakes (telegram_id, query, correction, category, lesson) VALUES (?, ?, ?, ?, ?)`)
+    .run(msg.from.id, "", correctionText, category, `User correction: ${correctionText.slice(0, 100)}`)
+
+  safeSend(chatId,
+    `✅ *Got it! I'll remember this.*\n\n` +
+      `Category: ${category}\n` +
+      `Correction: ${correctionText.slice(0, 200)}\n\n` +
+      `_I won't make this mistake again. This is permanently saved._`,
+  )
+})
+
+// ── /mistakes — See what I've learned ───────────────────────
+bot.onText(/\/mistakes/, (msg) => {
+  const mistakes = db.prepare(`SELECT category, correction, created_at FROM mistakes ORDER BY created_at DESC LIMIT 10`).all()
+
+  if (mistakes.length === 0) {
+    safeSend(msg.chat.id, "No corrections yet! Use /correct to teach me when I'm wrong.")
+    return
+  }
+
+  const lines = mistakes.map((m, i) =>
+    `${i + 1}. *${m.category}*: ${m.correction.slice(0, 80)}\n   _${m.created_at}_`,
+  )
+
+  safeSend(msg.chat.id,
+    `📚 *What I've Learned (${mistakes.length} corrections)*\n\n${lines.join("\n\n")}\n\n_I apply these corrections to every answer in the relevant category._`,
+  )
+})
+
+// ── /review — Review uploaded document ──────────────────────
+bot.onText(/\/review$/, (msg) => {
+  safeSend(msg.chat.id,
+    `📄 *Document Review*\n\n` +
+      `Send me a document to review:\n` +
+      `• PDF — board resolution, agreement, financial statement, ROC form\n` +
+      `• Image — notice, letter, any printed document\n\n` +
+      `I'll check for:\n` +
+      `✅ Legal validity & proper format\n` +
+      `✅ Missing clauses or provisions\n` +
+      `✅ Incorrect section references\n` +
+      `✅ Stamp duty & registration needs\n` +
+      `✅ Filing requirements\n` +
+      `⚠️ Risk areas & compliance issues`,
+  )
+})
 
 // ── /ask — Explicit question ────────────────────────────────
 bot.onText(/\/ask\s+(.+)/s, async (msg, match) => {

@@ -51,6 +51,31 @@ WHEN ANALYZING DOCUMENTS:
 - Contracts: Flag risky clauses, missing provisions, stamp duty implications
 - Images: Read text via OCR, identify document type, extract data
 
+DAY-TO-DAY TASKS YOU HELP WITH:
+1. DOCUMENT DRAFTING: Board resolutions, minutes (BM/GM), notices (AGM/EGM/Board), MOA/AOA amendments, shareholder agreements, director appointment letters, power of attorney
+2. FORM REVIEW: All MCA e-forms (INC, DIR, MGT, AOC, SH, CHG, PAS, BEN, MSME, DPT, ADT), check for completeness, correct attachments, SRN tracking
+3. COMPLIANCE CALENDAR: Due date tracking per company, auto-reminders, penalty calculation for delays
+4. ROC FILINGS: Step-by-step for every form, fees calculator, common rejection reasons, resubmission guidance
+5. MERCHANT BANKER: SEBI registration, due diligence checklists, IPO compliance, issue management, DRHP review
+6. CORPORATE RESTRUCTURING: Merger/demerger/amalgamation under Ss. 230-240, NCLT procedure, valuation, swap ratio, scheme drafting
+7. FOREIGN INVESTMENT: FDI compliance, FC-GPR/FC-TRS filing, ECB reporting, downstream investment, ODI compliance
+8. ANNUAL COMPLIANCE: Full annual calendar, AGM preparation, annual return, financial statement filing, director KYC, auditor appointment
+9. SECRETARIAL AUDIT: MR-3 report preparation, checklist, observation drafting, qualification/reservation
+10. CONSULTANCY: Startup incorporation, MSME registration, trademark basics, FSSAI, import-export code, shop act
+
+WHEN REVIEWING DOCUMENTS:
+- Check legal validity, proper format, correct authority
+- Flag missing clauses, incorrect references, outdated provisions
+- Suggest improvements with specific language
+- Check stamp duty and registration requirements
+- Verify signatures, attestation, notarization needs
+
+LEARNING FROM MISTAKES:
+- If a user corrects you, remember the correction permanently
+- Track common mistakes by category
+- When answering a topic where you've been corrected before, apply the correction
+- Be honest: "I was previously corrected on this — the correct position is..."
+
 WHEN UNCERTAIN:
 - Say "I need to verify this" rather than guessing
 - Suggest consulting a practicing CS/CA for specific filings
@@ -74,6 +99,24 @@ function getClient() {
  * Ask the CS Brain a question
  */
 export async function askExpert(query, context = {}) {
+  // Check past mistakes for this topic before answering
+  let mistakeContext = ""
+  try {
+    const { default: db } = await import("./database.mjs")
+    const category = categorizeQuery(query)
+    const pastMistakes = db.prepare(
+      `SELECT correction, lesson FROM mistakes WHERE category = ? ORDER BY created_at DESC LIMIT 3`
+    ).all(category)
+    if (pastMistakes.length > 0) {
+      mistakeContext = "\n\nIMPORTANT — PAST CORRECTIONS (apply these):\n" +
+        pastMistakes.map(m => `- ${m.correction} (${m.lesson})`).join("\n")
+    }
+  } catch {}
+
+  if (mistakeContext) {
+    query = query + mistakeContext
+  }
+
   // Use Claude CLI (included in $200/mo Max plan — no extra API charges)
   if (USE_CLI) {
     return askViaCLI(query, context)

@@ -66,9 +66,74 @@ db.exec(`
     created_at     TEXT DEFAULT (datetime('now'))
   );
 
+  CREATE TABLE IF NOT EXISTS mistakes (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id    INTEGER,
+    query          TEXT,
+    wrong_answer   TEXT,
+    correction     TEXT,
+    category       TEXT,
+    lesson         TEXT,
+    created_at     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS templates (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    template_type  TEXT,
+    template_name  TEXT,
+    template_text  TEXT,
+    variables      TEXT,
+    category       TEXT,
+    usage_count    INTEGER DEFAULT 0,
+    created_at     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS reviews (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id    INTEGER,
+    doc_type       TEXT,
+    original_text  TEXT,
+    review_notes   TEXT,
+    issues_found   INTEGER DEFAULT 0,
+    risk_level     TEXT,
+    created_at     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS client_companies (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id    INTEGER,
+    company_name   TEXT,
+    cin            TEXT,
+    incorporation_date TEXT,
+    company_type   TEXT,
+    authorized_capital TEXT,
+    paid_up_capital TEXT,
+    registered_office TEXT,
+    directors      TEXT,
+    auditor        TEXT,
+    notes          TEXT,
+    created_at     TEXT DEFAULT (datetime('now'))
+  );
+
+  CREATE TABLE IF NOT EXISTS compliance_tracker (
+    id             INTEGER PRIMARY KEY AUTOINCREMENT,
+    telegram_id    INTEGER,
+    company_id     INTEGER REFERENCES client_companies(id),
+    form_name      TEXT,
+    due_date       TEXT,
+    status         TEXT DEFAULT 'pending',
+    filed_date     TEXT,
+    notes          TEXT,
+    created_at     TEXT DEFAULT (datetime('now'))
+  );
+
   CREATE INDEX IF NOT EXISTS idx_queries_user ON queries(telegram_id);
   CREATE INDEX IF NOT EXISTS idx_knowledge_cat ON knowledge_base(category);
   CREATE INDEX IF NOT EXISTS idx_knowledge_search ON knowledge_base(title, content);
+  CREATE INDEX IF NOT EXISTS idx_mistakes_cat ON mistakes(category);
+  CREATE INDEX IF NOT EXISTS idx_templates_type ON templates(template_type);
+  CREATE INDEX IF NOT EXISTS idx_reviews_user ON reviews(telegram_id);
+  CREATE INDEX IF NOT EXISTS idx_compliance_due ON compliance_tracker(due_date);
 `)
 
 export default db
