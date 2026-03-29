@@ -1,0 +1,20 @@
+{
+  "name": "cs-agent",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node bot.mjs",
+    "dev": "node --watch bot.mjs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.80.0",
+    "@libsql/client": "^0.17.2",
+    "axios": "^1.9.0",
+    "better-sqlite3": "^12.8.0",
+    "dotenv": "^17.3.1",
+    "node-telegram-bot-api": "^0.66.0",
+    "pdf-parse": "^1.1.1",
+    "sharp": "^0.33.2",
+    "tesseract.js": "^5.1.0"
+  }
+}
