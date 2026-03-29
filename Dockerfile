@@ -1,7 +1,10 @@
 FROM node:20-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 make g++ && rm -rf /var/lib/apt/lists/*
+    python3 make g++ bash curl ca-certificates && rm -rf /var/lib/apt/lists/*
+
+# Install Claude CLI
+RUN npm install -g @anthropic-ai/claude-code 2>/dev/null || true
 
 WORKDIR /app
 COPY package.json ./

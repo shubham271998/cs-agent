@@ -18,7 +18,7 @@ import Anthropic from "@anthropic-ai/sdk"
 import { spawn } from "child_process"
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || ""
-const USE_CLI = !ANTHROPIC_KEY // Fallback to Claude CLI if no API key
+const USE_CLI = true // Always use Claude CLI (included in $200/mo plan, no extra charges)
 
 const SYSTEM_PROMPT = `You are an expert Company Secretary (CS), Chartered Accountant (CA), and Financial Analyst based in India. You have deep expertise spanning 100+ years of Indian corporate law and finance.
 
@@ -74,8 +74,8 @@ function getClient() {
  * Ask the CS Brain a question
  */
 export async function askExpert(query, context = {}) {
-  // If no API key, use Claude CLI (works with OAuth login)
-  if (USE_CLI && !context.imageBase64) {
+  // Use Claude CLI (included in $200/mo Max plan — no extra API charges)
+  if (USE_CLI) {
     return askViaCLI(query, context)
   }
 
@@ -183,7 +183,7 @@ async function askViaCLI(query, context = {}) {
 
   return new Promise((resolve, reject) => {
     const args = ["-p", "--output-format", "json", "--dangerously-skip-permissions",
-      "--system-prompt", SYSTEM_PROMPT.slice(0, 5000), fullPrompt]
+      "--append-system-prompt", SYSTEM_PROMPT.slice(0, 5000), fullPrompt]
 
     const proc = spawn("claude", args, {
       env: { ...process.env },
