@@ -649,4 +649,4 @@ process.on("unhandledRejection", (reason) => {
 })
 
 console.log("🏛️ CS Agent started — Company Secretary / CA / Financial Analyst")
-console.log(`   Bot: @${(await bot.getMe()).username}`)
+bot.getMe().then(me => console.log(`   Bot: @${me.username}`)).catch(() => {})
