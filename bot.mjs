@@ -19,6 +19,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN
 if (!BOT_TOKEN) { console.error("Set TELEGRAM_BOT_TOKEN"); process.exit(1) }
 
+// Clear any stuck polling before starting
+try {
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/deleteWebhook`)
+  await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/getUpdates?offset=-1&timeout=1`)
+  await new Promise(r => setTimeout(r, 3000)) // Wait 3s for old instance to die
+} catch {}
+
 const ADMIN_ID = Number(process.env.ADMIN_TELEGRAM_ID) || 0
 const DATA_DIR = path.resolve(__dirname, "data")
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true })
