@@ -656,4 +656,7 @@ bot.on("polling_error", (err) => {
 })
 
 console.log("🏛️ CS Agent started — Company Secretary / CA / Financial Analyst")
-bot.getMe().then(me => console.log(`   Bot: @${me.username}`)).catch(() => {})
+bot.getMe().then(me => console.log(`   Bot: @${me.username}`)).catch(err => console.error("getMe failed:", err.message))
+
+// Keep process alive
+setInterval(() => {}, 60000)
