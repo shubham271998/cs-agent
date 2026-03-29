@@ -15,8 +15,10 @@
  * Can process: PDFs, images, emails, financial statements
  */
 import Anthropic from "@anthropic-ai/sdk"
+import { spawn } from "child_process"
 
 const ANTHROPIC_KEY = process.env.ANTHROPIC_API_KEY || ""
+const USE_CLI = !ANTHROPIC_KEY // Fallback to Claude CLI if no API key
 
 const SYSTEM_PROMPT = `You are an expert Company Secretary (CS), Chartered Accountant (CA), and Financial Analyst based in India. You have deep expertise spanning 100+ years of Indian corporate law and finance.
 
@@ -72,6 +74,11 @@ function getClient() {
  * Ask the CS Brain a question
  */
 export async function askExpert(query, context = {}) {
+  // If no API key, use Claude CLI (works with OAuth login)
+  if (USE_CLI && !context.imageBase64) {
+    return askViaCLI(query, context)
+  }
+
   const c = getClient()
   if (!c) throw new Error("ANTHROPIC_API_KEY not set. Admin needs to configure this.")
 
@@ -164,6 +171,52 @@ export function getUpcomingDeadlines() {
     const [day, m, y] = d.date.split("/").map(Number)
     return new Date(y, m - 1, day) >= now
   }).slice(0, 8)
+}
+
+/**
+ * Fallback: Ask via Claude CLI (uses OAuth, no API key needed)
+ */
+async function askViaCLI(query, context = {}) {
+  const fullPrompt = context.documentText
+    ? `DOCUMENT:\n${context.documentText.slice(0, 30000)}\n\nQUESTION: ${query}`
+    : query
+
+  return new Promise((resolve, reject) => {
+    const args = ["-p", "--output-format", "json", "--dangerously-skip-permissions",
+      "--system-prompt", SYSTEM_PROMPT.slice(0, 5000), fullPrompt]
+
+    const proc = spawn("claude", args, {
+      env: { ...process.env },
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 120000,
+    })
+
+    let stdout = ""
+    let stderr = ""
+    proc.stdout.on("data", (d) => stdout += d.toString())
+    proc.stderr.on("data", (d) => stderr += d.toString())
+
+    proc.on("close", (code) => {
+      if (code !== 0) {
+        reject(new Error(stderr.slice(0, 200) || `Claude CLI exited with code ${code}`))
+        return
+      }
+      try {
+        const parsed = JSON.parse(stdout)
+        resolve({
+          text: parsed.result || stdout,
+          usage: {
+            inputTokens: parsed.usage?.input_tokens || 0,
+            outputTokens: parsed.usage?.output_tokens || 0,
+            cost: parsed.total_cost_usd || 0,
+          },
+        })
+      } catch {
+        resolve({ text: stdout, usage: { inputTokens: 0, outputTokens: 0, cost: 0 } })
+      }
+    })
+    proc.on("error", (err) => reject(new Error(`Claude CLI not found: ${err.message}`)))
+  })
 }
 
 export default { askExpert, categorizeQuery, getUpcomingDeadlines }
